@@ -46,7 +46,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'muhammad.afza8994@gmail.com'
-EMAIL_HOST_PASSWORD = 'rdfe ffyr fdqk evwv'
+EMAIL_HOST_PASSWORD = 'password'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 INSTALLED_APPS = [
@@ -108,7 +108,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'checkregister',
         'USER': 'root',
-        'PASSWORD': 'waleed123',
+        'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '3306',
     }
