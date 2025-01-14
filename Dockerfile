@@ -1,24 +1,23 @@
-# Use a Debian-based Python image
 FROM python:3.10-slim
+
+# Install system dependencies for mysqlclient
+RUN apt-get update && apt-get install -y \
+    default-libmysqlclient-dev \
+    build-essential
 
 # Set the working directory
 WORKDIR /app
 
-# Update system and install pip
-RUN apt-get update && apt-get install -y python3 python3-pip
-
-# Install dependencies
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy application code
 COPY . .
 
-# Collect static files
+# Collect static files (if applicable)
 RUN python manage.py collectstatic --no-input
 
-# Expose the default Django port
+# Expose port 8000 and run the app
 EXPOSE 8000
-
-# Start the Django app
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "ReLog.wsgi:application"]
