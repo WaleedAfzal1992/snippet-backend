@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.hashers import check_password
-from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer
-from .models import RegisterBlog, BlogArticle, BlogContactUs
+from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer
+from .models import RegisterBlog, BlogArticle, BlogContactUs, Course
 from rest_framework.decorators import api_view
 from rest_framework.permissions import BasePermission
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -147,3 +147,7 @@ class ContactUsViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CourseViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    lookup_field = 'slug'

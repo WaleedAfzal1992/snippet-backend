@@ -107,9 +107,9 @@ REST_FRAMEWORK = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'checkregister',
+        'NAME': 'pyops',
         'USER': 'root',
-        'PASSWORD': 'password',
+        'PASSWORD': 'ILovePython3.0',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -153,6 +153,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

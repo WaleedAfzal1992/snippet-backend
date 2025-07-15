@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import RegisterBlog
+from .models import RegisterBlog, Course
+
 
 class CustomUserAdmin(UserAdmin):
     model = RegisterBlog
@@ -16,4 +17,6 @@ class CustomUserAdmin(UserAdmin):
         ('Personal info', {'fields': ('First_name', 'Last_name')}),
     )
 
+
 admin.site.register(RegisterBlog, CustomUserAdmin)
+admin.site.register(Course)

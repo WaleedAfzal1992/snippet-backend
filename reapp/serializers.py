@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RegisterBlog, LoginBlog, BlogArticle, BlogContactUs
+from .models import RegisterBlog, LoginBlog, BlogArticle, BlogContactUs, Course
 
 
 class RegisterSerializers(serializers.ModelSerializer):
@@ -31,4 +31,10 @@ class BlogArticleSerializer(serializers.ModelSerializer):
 class BlogContactUsSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogContactUs
+        fields = '__all__'
+
+
+class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
         fields = '__all__'
