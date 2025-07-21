@@ -2,10 +2,10 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.hashers import check_password
-from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer
-from .models import RegisterBlog, BlogArticle, BlogContactUs, Course
-from rest_framework.decorators import api_view
-from rest_framework.permissions import BasePermission
+from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer, CartItemSerializer
+from .models import RegisterBlog, BlogArticle, BlogContactUs, Course, CartItem
+from rest_framework.decorators import api_view, action
+from rest_framework.permissions import BasePermission, IsAuthenticatedOrReadOnly
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -151,3 +151,68 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     lookup_field = 'slug'
+
+
+class CartItemViewSet(viewsets.ModelViewSet):
+    serializer_class = CartItemSerializer
+    queryset = CartItem.objects.all()
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return CartItem.objects.filter(user=self.request.user).select_related('course')
+        if not self.request.session.session_key:
+            self.request.session.create()
+        return CartItem.objects.filter(session_key=self.request.session.session_key).select_related('course')
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        course_id = request.data.get('course_id')
+        quantity = int(request.data.get('quantity', 1))
+
+        try:
+            course = Course.objects.get(pk=course_id)
+
+            if request.user.is_authenticated:
+                cart_item, created = CartItem.objects.get_or_create(
+                    user=request.user,
+                    course=course,
+                    defaults={'quantity': quantity}
+                )
+                if not created:
+                    cart_item.quantity += quantity
+                    cart_item.save()
+            else:
+                if not request.session.session_key:
+                    request.session.create()
+                cart_item, created = CartItem.objects.get_or_create(
+                    session_key=request.session.session_key,
+                    course=course,
+                    defaults={'quantity': quantity}
+                )
+                if not created:
+                    cart_item.quantity += quantity
+                    cart_item.save()
+
+            # Return the created/updated cart item
+            serializer = self.get_serializer(cart_item)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Course.DoesNotExist:
+            return Response(
+                {"error": "Course does not exist"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+
+        courses = Course.objects.all()
+        course_serializer = CourseSerializer(courses, many=True)
+
+        return Response({
+            'cart_items': serializer.data,
+            'available_courses': course_serializer.data
+        })

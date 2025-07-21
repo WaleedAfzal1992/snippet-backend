@@ -84,3 +84,23 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class CartItem(models.Model):
+    user = models.ForeignKey(RegisterBlog, on_delete=models.CASCADE, related_name="cart_items", null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="cart_items")
+    quantity = models.PositiveIntegerField(default=1)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def total_price(self):
+        return self.quantity * self.course.price
+
+    def __str__(self):
+        return f"{self.quantity} x {self.course.title} in cart"
+
+    class Meta:
+        unique_together = (('user', 'course'), ('session_key', 'course'))
+        ordering = ['-added_at']
+

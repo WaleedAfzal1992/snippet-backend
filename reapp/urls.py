@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .views import BlogArticleDetailView, UpdateBlogArticleView, RegistrationViewSet, LoginViewSet, ContactUsViewSet, CourseViewSet
+from .views import BlogArticleDetailView, UpdateBlogArticleView, RegistrationViewSet, LoginViewSet, ContactUsViewSet, CourseViewSet, CartItemViewSet
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -10,6 +10,7 @@ router.register(r'register', RegistrationViewSet, basename='api-register')
 router.register(r'login', LoginViewSet, basename='api-login')
 router.register(r'contact', ContactUsViewSet, basename='api-contact')
 router.register(r'course', CourseViewSet, basename='api-course')
+router.register(r'cart', CartItemViewSet, basename='cart')
 
 urlpatterns = [
     path('', include(router.urls)),
