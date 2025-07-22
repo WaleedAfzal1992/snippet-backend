@@ -24,6 +24,7 @@ class RegisterBlog(AbstractBaseUser, PermissionsMixin):
     Last_name = models.CharField(max_length=100)
     name = models.CharField(max_length=100, unique=True)
     Email = models.EmailField(max_length=200, unique=True)
+    phone_number = models.CharField(max_length=200)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
