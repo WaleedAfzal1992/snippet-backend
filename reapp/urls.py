@@ -15,9 +15,9 @@ router.register(r'cart', CartItemViewSet, basename='cart')
 urlpatterns = [
     path('', include(router.urls)),
     path('articles/', views.create_blog_article, name='create_blog_article'),
-    path('articles/<int:id>/update/', UpdateBlogArticleView.as_view(), name='UpdateBlogArticleView'),
-    path('articles/<int:id>/', views.get_blog_article_by_id, name='get_blog_article_by_id'),  # This is for GET
-    path('articles/<int:id>/delete/', BlogArticleDetailView.as_view(), name='delete_blog_article'),  # This is for DELETE
+    path('articles/<slug:slug>/update/', UpdateBlogArticleView.as_view(), name='UpdateBlogArticleView'),
+    path('articles/<slug:slug>/', views.get_blog_article_by_id, name='get_blog_article_by_id'),  # This is for GET
+    path('articles/<slug:slug>/delete/', BlogArticleDetailView.as_view(), name='delete_blog_article'),  # This is for DELETE
     path('api-auth/', include('rest_framework.urls')),
 ]
 

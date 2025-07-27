@@ -25,7 +25,7 @@ class LoginSerializers(serializers.ModelSerializer):
 class BlogArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogArticle
-        fields = ['id', 'title', 'content']
+        fields = ['slug', 'title', 'content']
 
 
 class BlogContactUsSerializer(serializers.ModelSerializer):

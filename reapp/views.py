@@ -10,6 +10,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.conf import settings
+from django.db import IntegrityError
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
@@ -67,8 +68,13 @@ def create_blog_article(request):
     if request.method == 'POST':
         serializer = BlogArticleSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                serializer.save()
+                headers = {'Location': serializer.data.get('slug')}
+                return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            except IntegrityError:
+                return Response({"error": "Slug already exists. Try a different title."},
+                                status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'GET':
@@ -78,9 +84,9 @@ def create_blog_article(request):
 
 
 @api_view(['GET'])
-def get_blog_article_by_id(request, id):
+def get_blog_article_by_id(request, slug):
     try:
-        article = BlogArticle.objects.get(id=id)
+        article = BlogArticle.objects.get(slug=slug)
         serializer = BlogArticleSerializer(article)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except BlogArticle.DoesNotExist:
@@ -97,9 +103,9 @@ class UpdateBlogArticleView(APIView):
     permission_classes = [IsSuperUserOrStaff]
     authentication_classes = [JWTAuthentication]
 
-    def put(self, request, id):
+    def put(self, request, slug):
         try:
-            article = BlogArticle.objects.get(id=id)
+            article = BlogArticle.objects.get(slug=slug)
             article.title = request.data.get('title', article.title)
             article.content = request.data.get('content', article.content)
             article.save()
@@ -112,9 +118,9 @@ class UpdateBlogArticleView(APIView):
 class BlogArticleDetailView(APIView):
     permission_classes = [IsSuperUserOrStaff]  # Restricting to superusers or staff only
 
-    def delete(self, request, id):
+    def delete(self, request, slug):
         try:
-            article = BlogArticle.objects.get(id=id)
+            article = BlogArticle.objects.get(slug=slug)
             article.delete()
             return Response({"message": "Blog deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except BlogArticle.DoesNotExist:

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils.text import slugify
+from django.urls import reverse
 
 
 class CustomUserManager(BaseUserManager):
@@ -24,7 +25,7 @@ class RegisterBlog(AbstractBaseUser, PermissionsMixin):
     Last_name = models.CharField(max_length=100)
     name = models.CharField(max_length=100, unique=True)
     Email = models.EmailField(max_length=200, unique=True)
-    phone_number = models.CharField(max_length=200)
+    phone_number = models.CharField(max_length=15, null=True)
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
@@ -48,10 +49,22 @@ class LoginBlog(models.Model):
 
 class BlogArticle(models.Model):
     title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     content = models.TextField()
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)[:240]
+            slug = base_slug
+            num = 1
+            while BlogArticle.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{num}"
+                num += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
 
 class BlogContactUs(models.Model):
