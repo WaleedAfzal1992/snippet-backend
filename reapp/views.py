@@ -1,3 +1,8 @@
+import os
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,13 +10,17 @@ from django.contrib.auth.hashers import check_password
 from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer, CartItemSerializer
 from .models import RegisterBlog, BlogArticle, BlogContactUs, Course, CartItem
 from rest_framework.decorators import api_view, action
-from rest_framework.permissions import BasePermission, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.conf import settings
 from django.db import IntegrityError
+from datetime import datetime, timedelta
+import hmac, hashlib
 
+
+User = get_user_model()
 
 class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = RegisterBlog.objects.all()
@@ -138,17 +147,33 @@ class ContactUsViewSet(viewsets.ModelViewSet):
             email = serializer.validated_data['email']
             message = serializer.validated_data['message']
 
+            # Save the message to database
+            serializer.save()
+
             try:
+                # Send email to YOUR email address (admin email)
                 send_mail(
-                    f"Message from {name}",
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
+                    f"New message from {name} ({email})",  # Subject
+                    f"From: {name} <{email}>\n\n{message}",  # Message body
+                    settings.DEFAULT_FROM_EMAIL,  # From email (your server email)
+                    [settings.ADMIN_EMAIL],  # To email (YOUR email)
                     fail_silently=False,
                 )
-                return Response({'message': 'Your message has been sent successfully!'}, status=status.HTTP_200_OK)
+
+                # Optional: Send confirmation to the user
+                send_mail(
+                    "Thank you for contacting us",
+                    f"Dear {name},\n\nWe have received your message and will get back to you soon.\n\nYour message:\n{message}",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],  # Send to user's email
+                    fail_silently=True,
+                )
+
+                return Response({'message': 'Your message has been sent successfully!'},
+                                status=status.HTTP_200_OK)
             except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({'error': str(e)},
+                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -221,4 +246,116 @@ class CartItemViewSet(viewsets.ModelViewSet):
         return Response({
             'cart_items': serializer.data,
             'available_courses': course_serializer.data
+        })
+
+class PasswordResetRequestView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required"}, status=400)
+
+        try:
+            user = User.objects.get(Email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+
+        reset_link = f"{request.data.get('frontend_base_url')}/reset-password/{uid}/{token}/"
+
+        send_mail(
+            subject="Reset your password",
+            message=f"Click here to reset your password: {reset_link}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.Email],
+            fail_silently=False,
+        )
+
+        return Response({"message": "Password reset link sent!"})
+
+
+class PasswordResetConfirmView(APIView):
+    def post(self, request):
+        uidb64 = request.data.get("uid")
+        token = request.data.get("token")
+        new_password = request.data.get("new_password")
+
+        if not uidb64 or not token or not new_password:
+            return Response({"error": "Missing data"}, status=400)
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError, TypeError):
+            return Response({"error": "Invalid user ID"}, status=400)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token"}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"message": "Password has been reset successfully!"})
+
+
+class JazzCashPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Example: frontend sends course_id and quantity
+        course_id = request.data.get("course_id")
+        quantity = int(request.data.get("quantity", 1))
+
+        try:
+            course = Course.objects.get(pk=course_id)
+        except Course.DoesNotExist:
+            return Response({'error': 'Course does not exist'}, status=400)
+
+        price = int(float(course.price)) * quantity  # Assuming course has price field
+
+        # JazzCash configs (use from settings.py or environment)
+        JAZZCASH_MERCHANT_ID = os.getenv('JAZZCASH_MERCHANT_ID')
+        JAZZCASH_PASSWORD = os.getenv('JAZZCASH_PASSWORD')
+        JAZZCASH_RETURN_URL = "http://127.0.0.1:3000/"
+        JAZZCASH_INTEGRITY_SALT = os.getenv('JAZZCASH_INTEGRITY_SALT')
+
+        current_datetime = datetime.now()
+        pp_TxnDateTime = current_datetime.strftime('%Y%m%d%H%M%S')
+        pp_TxnExpiryDateTime = (current_datetime + timedelta(hours=1)).strftime('%Y%m%d%H%M%S')
+        pp_TxnRefNo = "T" + pp_TxnDateTime
+
+        post_data = {
+            "pp_Version": "1.0",
+            "pp_TxnType": "MWALLET",
+            "pp_Language": "EN",
+            "pp_MerchantID": JAZZCASH_MERCHANT_ID,
+            "pp_SubMerchantID": "",
+            "pp_Password": JAZZCASH_PASSWORD,
+            "pp_BankID": "TBANK",
+            "pp_ProductID": "RETL",
+            "pp_TxnRefNo": pp_TxnRefNo,
+            "pp_Amount": str(price * 100),  # In Paisa
+            "pp_TxnCurrency": "PKR",
+            "pp_TxnDateTime": pp_TxnDateTime,
+            "pp_BillReference": f"Bill{course_id}",
+            "pp_Description": f"Payment for {course.title}",
+            "pp_TxnExpiryDateTime": pp_TxnExpiryDateTime,
+            "pp_ReturnURL": JAZZCASH_RETURN_URL,
+            "pp_SecureHash": "",  # Will be filled later
+            "ppmpf_1": str(request.user.id),
+            "ppmpf_2": "CustomField2",
+            "ppmpf_3": "CustomField3",
+            "ppmpf_4": "CustomField4",
+            "ppmpf_5": "CustomField5"
+        }
+
+        # Secure Hash generation
+        sorted_string = "&".join(f"{k}={v}" for k, v in sorted(post_data.items()) if v != "")
+        secure_hash = hmac.new(JAZZCASH_INTEGRITY_SALT.encode(), sorted_string.encode(), hashlib.sha256).hexdigest()
+        post_data["pp_SecureHash"] = secure_hash
+
+        return Response({
+            "message": "Redirect to JazzCash",
+            "post_data": post_data,
+            "redirect_url": "https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform/"
         })
