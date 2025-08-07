@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import RegisterBlog, LoginBlog, BlogArticle, BlogContactUs, Course, CartItem
+from .models import RegisterBlog, LoginBlog, BlogArticle, BlogContactUs, Course, CartItem, PaymentVoucher
 
 
 class RegisterSerializers(serializers.ModelSerializer):
@@ -86,3 +86,9 @@ class CartSummarySerializer(serializers.Serializer):
             'total_items': instance['total_items'],
             'grand_total': instance['grand_total']
             }
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentVoucher
+        fields = "__all__"

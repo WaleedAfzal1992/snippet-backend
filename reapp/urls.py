@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
-from .views import BlogArticleDetailView, UpdateBlogArticleView, RegistrationViewSet, LoginViewSet, ContactUsViewSet, CourseViewSet, CartItemViewSet, JazzCashPaymentView, PasswordResetRequestView, PasswordResetConfirmView
+from .views import BlogArticleDetailView, UpdateBlogArticleView, RegistrationViewSet, LoginViewSet, ContactUsViewSet, CourseViewSet, CartItemViewSet, JazzCashPaymentView, PasswordResetRequestView, PasswordResetConfirmView, PaymentViewSet
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -11,6 +11,7 @@ router.register(r'login', LoginViewSet, basename='api-login')
 router.register(r'contact', ContactUsViewSet, basename='api-contact')
 router.register(r'course', CourseViewSet, basename='api-course')
 router.register(r'cart', CartItemViewSet, basename='cart')
+router.register(r'payment-voucher', PaymentViewSet, basename='payment')
 urlpatterns = [
     path('', include(router.urls)),
     path('articles/', views.create_blog_article, name='create_blog_article'),

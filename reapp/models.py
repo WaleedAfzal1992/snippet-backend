@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db.models import ImageField
 from django.utils.text import slugify
 from django.urls import reverse
 
@@ -117,4 +118,8 @@ class CartItem(models.Model):
     class Meta:
         unique_together = (('user', 'course'), ('session_key', 'course'))
         ordering = ['-added_at']
+
+
+class PaymentVoucher(models.Model):
+    voucher = models.ImageField(upload_to='voucher_images/')
 

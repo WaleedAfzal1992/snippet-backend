@@ -1,14 +1,16 @@
 import os
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMultiAlternatives
+from email.mime.image import MIMEImage
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, mixins
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth.hashers import check_password
-from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer, CartItemSerializer
-from .models import RegisterBlog, BlogArticle, BlogContactUs, Course, CartItem
+from .serializers import RegisterSerializers, LoginSerializers, BlogArticleSerializer, BlogContactUsSerializer, CourseSerializer, CartItemSerializer, PaymentSerializer
+from .models import RegisterBlog, BlogArticle, BlogContactUs, Course, CartItem, PaymentVoucher
 from rest_framework.decorators import api_view, action
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -296,6 +298,43 @@ class PasswordResetConfirmView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"message": "Password has been reset successfully!"})
+
+
+class PaymentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+    serializer_class = PaymentSerializer
+    queryset = PaymentVoucher.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+
+        # Email setup
+        subject = "New Voucher Uploaded"
+        from_email = settings.DEFAULT_FROM_EMAIL
+        to = [settings.ADMIN_EMAIL]  # Replace with your admin/accountant email
+
+        text_content = "A student has submitted a new payment voucher."
+        html_content = f"""
+                <p>A student has submitted a new payment voucher.</p>
+                <p><strong>Voucher Image:</strong></p>
+                <img src="cid:voucher_image" alt="Voucher" style="max-width: 600px; border: 1px solid #ccc;" />
+                """
+        email = EmailMultiAlternatives(subject, text_content, from_email, to)
+        email.attach_alternative(html_content, "text/html")
+
+        # Attach image inline using CID
+        if instance.voucher:
+            with open(instance.voucher.path, 'rb') as img_file:
+                image = MIMEImage(img_file.read())
+                image.add_header('Content-ID', '<voucher_image>')
+                image.add_header("Content-Disposition", "inline", filename=instance.voucher.name)
+                email.attach(image)
+
+        email.send(fail_silently=False)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 class JazzCashPaymentView(APIView):
