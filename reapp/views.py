@@ -303,11 +303,20 @@ class PasswordResetConfirmView(APIView):
 class PaymentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = PaymentSerializer
     queryset = PaymentVoucher.objects.all()
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance = serializer.save()
+
+        user = request.user  # Assuming the user is authenticated
+        user_name = user.name
+        print(user_name)
+
 
         # Email setup
         subject = "New Voucher Uploaded"
@@ -316,7 +325,7 @@ class PaymentViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
         text_content = "A student has submitted a new payment voucher."
         html_content = f"""
-                <p>A student has submitted a new payment voucher.</p>
+                <p>A student {user_name} has submitted a new payment voucher.</p>
                 <p><strong>Voucher Image:</strong></p>
                 <img src="cid:voucher_image" alt="Voucher" style="max-width: 600px; border: 1px solid #ccc;" />
                 """

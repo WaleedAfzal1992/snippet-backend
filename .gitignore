@@ -1,0 +1,63 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment files
+.venv/
+venv/
+env/
+ENV/
+
+# Django stuff
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Environment variables
+.env
+.env.local
+.env*.local
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# Testing/coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Package management
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# Database migrations (if you want to exclude them)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Local development overrides
+local_settings.py
+settings/local.py
+
+# Logs
+logs/
+*.log
